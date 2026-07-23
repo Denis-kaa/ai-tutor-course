@@ -1,9 +1,9 @@
 import subprocess
-import json
 import os
+import re
 
 def get_secret(path: str) -> str:
-    """Безопасно получает секрет из GPG-хранилища pass."""
+    """Безопасно получает секрет из GPG-хранилища pass (для крайних случаев)."""
     try:
         result = subprocess.run(
             ['pass', 'show', path], 
@@ -13,27 +13,77 @@ def get_secret(path: str) -> str:
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError:
-        raise ValueError(f"Не удалось получить секрет: {path}. Убедитесь, что он добавлен через 'pass insert'.")
+        return None  # Возвращаем None, если секрета нет (LLM не используется)
 
-class AITutorEngine:
+class LocalTutorEngine:
     def __init__(self):
-        # Читаем API ключ безопасно, без хардкода
-        self.api_key = get_secret('llm/api_key')
         self.kb_path = os.path.join(os.path.dirname(__file__), '../../knowledge_base')
-        print(f"✅ Ядро тьютора инициализировано. База знаний: {self.kb_path}")
+        self.llm_enabled = False  # По умолчанию LLM отключен для оффлайн-работы
+        
+        # Загружаем локальную базу знаний (заглушка, в будущем будет парсинг JSON/SQLite)
+        self.kb = self._load_local_kb()
+        print("✅ Локальный AI-Тьютор инициализирован. LLM отключен. Работаем оффлайн.")
 
-    def get_context(self, module_id: int, topic: str) -> str:
-        """Заглушка для получения контекста из базы знаний."""
-        # В будущем здесь будет парсинг Markdown-файлов из knowledge_base/
-        return f"Контекст для модуля {module_id}, тема: {topic}. (База знаний в разработке)"
+    def _load_local_kb(self):
+        """Загружает предзаготовленные ответы из базы знаний."""
+        return {
+            "функции": {
+                "explanation": "Функция — это как блендер 🥤. Кидаешь яблоки (аргументы), жмёшь кнопку — получаешь сок (результат).",
+                "hint": "Подумай: что функция должна принимать на вход и что возвращать через return?",
+                "code_check": "Проверь, есть ли двоеточие ':' после объявления def и правильный ли отступ."
+            },
+            "переменные": {
+                "explanation": "Переменная — это коробка с наклейкой (именем), внутри которой лежит значение.",
+                "hint": "Убедись, что имя переменной не начинается с цифры и не содержит пробелов.",
+                "code_check": "Проверь, не используешь ли ты зарезервированные слова Python (например, 'if', 'for') как имена переменных."
+            },
+            "default": {
+                "explanation": "Я пока учусь. Попробуй спросить про 'функции' или 'переменные', чтобы увидеть, как это работает.",
+                "hint": "Попробуй разбить задачу на более мелкие шаги или переформулировать вопрос.",
+                "code_check": "Код выглядит нормально, но я пока могу проверять только базовый синтаксис."
+            }
+        }
 
-    def ask(self, user_query: str, module_id: int, topic: str) -> str:
-        """Основной метод взаимодействия с тьютором."""
-        context = self.get_context(module_id, topic)
-        # Здесь будет логика вызова LLM с системным промптом и контекстом
-        return f"🤖 Тьютор получил вопрос: '{user_query}' в контексте: {context}"
+    def _find_best_match(self, query: str) -> str:
+        """Простой поиск по ключевым словам в локальной базе знаний."""
+        query_lower = query.lower()
+        for keyword in self.kb.keys():
+            if keyword in query_lower:
+                return keyword
+        return "default"
+
+    def explain(self, query: str) -> str:
+        keyword = self._find_best_match(query)
+        return self.kb[keyword]["explanation"]
+
+    def give_hint(self, query: str) -> str:
+        keyword = self._find_best_match(query)
+        return self.kb[keyword]["hint"]
+
+    def check_code(self, code: str) -> str:
+        """Локальная статическая проверка кода без LLM (через regex)."""
+        if "def " in code and ":" not in code:
+            return "❌ Ошибка: после объявления функции (def) обязательно нужно двоеточие ':'."
+        if "for " in code and ":" not in code:
+            return "❌ Ошибка: после оператора цикла (for) обязательно нужно двоеточие ':'."
+        if "if " in code and ":" not in code:
+            return "❌ Ошибка: после условия (if) обязательно нужно двоеточие ':'."
+        return "✅ Код выглядит синтаксически корректным! (Локальная проверка)"
+
+    def ask(self, user_query: str, action: str = "explain") -> str:
+        """Основной метод взаимодействия. Работает полностью оффлайн."""
+        if action == "explain":
+            return self.explain(user_query)
+        elif action == "hint":
+            return self.give_hint(user_query)
+        elif action == "check":
+            return self.check_code(user_query)
+        else:
+            return "Неизвестное действие. Используй: explain, hint, check."
 
 if __name__ == "__main__":
-    tutor = AITutorEngine()
-    response = tutor.ask("Объясни функции в Python", module_id=1, topic="Основы Python")
-    print(response)
+    tutor = LocalTutorEngine()
+    print("\n--- Тест объяснения ---")
+    print(tutor.ask("Как работают функции?", action="explain"))
+    print("\n--- Тест проверки кода ---")
+    print(tutor.ask("def hello()", action="check"))
