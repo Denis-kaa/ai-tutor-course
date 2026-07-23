@@ -22,9 +22,9 @@ status: "in_progress"
 - [x] 01-variables-examples.md — Примеры по переменным и типам
 - [x] 02-operators-examples.md — Примеры по операторам
 - [x] 03-conditions-examples.md — Примеры по условиям
-- [ ] 04-loops-examples.md — Примеры по циклам
-- [ ] 05-functions-examples.md — Примеры по функциям
-- [ ] 06-strings-examples.md — Примеры по строкам
+- [x] 04-loops-examples.md — Примеры по циклам (6 примеров)
+- [x] 05-functions-examples.md — Примеры по функциям (6 примеров)
+- [x] 06-strings-examples.md — Примеры по строкам (6 примеров)
 - [ ] 07-lists-examples.md — Примеры по спискам
 - [ ] 08-dictionaries-examples.md — Примеры по словарям
 - [ ] 09-files-examples.md — Примеры по файлам
@@ -32,6 +32,6 @@ status: "in_progress"
 
 ## Статус
 
-- Создано файлов: 3
-- Примеров кода: ~15
-- Прогресс: 15%
+- Создано файлов: 6
+- Примеров кода: ~34
+- Прогресс: 60%
