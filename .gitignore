@@ -1,0 +1,14 @@
+# Зависимости и сборка фронтенда
+node_modules/
+dist/
+
+# Временные/вспомогательные файлы
+*.log
+test.txt
+gen_*.sh
+gen_*.py
+kb_01.sh
+
+# Секреты и окружение
+.env
+.git-credentials
